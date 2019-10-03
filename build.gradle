@@ -18,5 +18,6 @@ dependencies {
     providedCompile 'javax.servlet:servlet-api:2.5'
     compile 'com.sun.faces:jsf-api:2.2.5'
     compile 'com.sun.faces:jsf-impl:2.2.5'
+    compile group: 'org.primefaces', name: 'primefaces', version: '7.0'
     compile group: 'org.primefaces.extensions', name: 'primefaces-extensions', version: '7.0.2'
 }
