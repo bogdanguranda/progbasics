@@ -8,13 +8,19 @@
   <ui:param name="pageTitle" value="Popular Products"/>
   <ui:define name="panel-main">
     <section>
-      <h1>Programming basics - Javascript</h1>
+      <h1>Programming basics - JavaScript</h1>
+      <h:panelGrid id="topPanel" columns = "1" border = "1" cellpadding = "10" cellspacing = "1">
+        <h:outputText class="warning" value="Problem ##{codeMirrorController.level + 1}" />
+        <h:outputText value="Instructions: #{codeMirrorController.instructionsText[codeMirrorController.level]}" />
+      </h:panelGrid>
       <h:form>
         <pe:codeMirror id="codeMirror" mode="#{codeMirrorController.mode}" theme="#{codeMirrorController.theme}"
                        value="#{codeMirrorController.content}" keyMap="#{codeMirrorController.keymap}" lineNumbers="true"
                        matchBrackets="true" />
-        <h:commandButton id="btnSubmit" value="Run" icon="fa fa-save" action="#{codeMirrorController.submitContent}" />
-        <h:outputText value="#{codeMirrorController.result}" />
+        <h:panelGrid id="bottomPanel" columns = "1" border = "1" cellpadding = "10" cellspacing = "1">
+          <p:commandButton id="btnSubmit" value="Run" action="#{codeMirrorController.submitCode}" ajax="false" />
+          <h:outputText id="resultVerify" value="#{codeMirrorController.verify}" />
+        </h:panelGrid>
       </h:form>
     </section>
   </ui:define>
