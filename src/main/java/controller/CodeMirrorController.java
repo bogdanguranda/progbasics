@@ -1,14 +1,16 @@
 package controller;
 
+import db.TestCasesDAO;
 import org.primefaces.extensions.event.CompleteEvent;
 
+import javax.annotation.PreDestroy;
 import javax.faces.bean.ManagedBean;
+import javax.faces.bean.ManagedProperty;
 import javax.faces.bean.SessionScoped;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
+import javax.script.*;
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.*;
 
 @ManagedBean
 @SessionScoped
@@ -16,7 +18,10 @@ public class CodeMirrorController implements Serializable {
 
     private static final long serialVersionUID = 20111020L;
 
-    private String content = "function main(inputN) { \n" +
+    @ManagedProperty(value="#{testCasesDAO}")
+    private TestCasesDAO testCasesDAO;
+
+    private String content = "function main(N) { \n" +
             "  // write your code here\n" +
             "};";
     private String verify = "";
@@ -24,37 +29,9 @@ public class CodeMirrorController implements Serializable {
     private Integer level = 0;
     private List<String> instructionsText = new ArrayList<>(
             Arrays.asList(
-                    "compute the sum of first N positive numbers (where N is a parameter)",
-                    "compute the sum of first N odd positive numbers (where N is a parameter)",
-                    "compute factorial of N (where N is a parameter)"
-            )
-    );
-    private List<Map<Integer, Integer>> testCases = new ArrayList<>(
-            Arrays.asList(
-                    new HashMap<Integer, Integer>() {{
-                        put(0, 0);
-                        put(1, 1);
-                        put(2, 3);
-                        put(3, 6);
-                        put(5, 15);
-                        put(8, 36);
-                    }},
-                    new HashMap<Integer, Integer>() {{
-                        put(0, 0);
-                        put(1, 1);
-                        put(2, 1);
-                        put(3, 4);
-                        put(5, 9);
-                        put(8, 16);
-                    }},
-                    new HashMap<Integer, Integer>() {{
-                        put(0, 1);
-                        put(1, 1);
-                        put(2, 2);
-                        put(3, 6);
-                        put(5, 120);
-                        put(8, 40320);
-                    }}
+                    "Compute the sum of first N positive numbers (where N is a parameter).",
+                    "Compute the sum of first N odd positive numbers (where N is a parameter).",
+                    "Compute factorial of N (where N is a parameter)."
             )
     );
 
@@ -62,31 +39,62 @@ public class CodeMirrorController implements Serializable {
     private String theme = "blackboard";
     private String keymap = "default";
 
+    private String executeLineRegEx = "(?m)^main\\(.*\\);";
+
+    private ScheduledExecutorService pool = Executors.newScheduledThreadPool(10);
+
     public void submitCode() {
+        Future<?> scriptTask = pool.submit(this::runTestCases);
+        pool.schedule(() -> {
+            scriptTask.cancel(true);
+        }, 3, TimeUnit.SECONDS);
+
         try {
-            runTestCases();
-        } catch (ScriptException e) {
-            verify = e.getMessage();
+            scriptTask.get(5, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            verify = "error: unknown execution error: " + Arrays.toString(e.getStackTrace());
+        } catch (CancellationException e) {
+            verify = "error: execution time exceeded 5s limit";
+        } finally {
+            content = content.replaceAll(executeLineRegEx, "");
+            content = content.trim();
         }
     }
 
-    private void runTestCases() throws ScriptException {
+    private void runTestCases() {
         ScriptEngineManager manager = new ScriptEngineManager();
         ScriptEngine engine = manager.getEngineByName("javascript");
+        ScriptContext scriptContext = new SimpleScriptContext();
 
-        String executeLineRegEx = "(?m)^main\\(.*\\);";
         boolean allCasesPass = true;
         Integer failedInput = null;
         Integer failedRes = null;
 
-        for (Map.Entry<Integer, Integer> testCase : testCases.get(level).entrySet()) {
+        for (Map.Entry<Integer, Integer> testCase : testCasesDAO.getTestCases().get(level).entrySet()) {
             content = content.replaceAll(executeLineRegEx, "");
             content += "\nmain(" + testCase.getKey() + ");";
-            Object nullableRes = engine.eval(content);
+
+            CompiledScript compiledScript = null;
+            try {
+                compiledScript = ((Compilable)engine).compile(content);
+            } catch (ScriptException e) {
+                allCasesPass = false;
+                break;
+            }
+
+            Object nullableRes = null;
+            try {
+                nullableRes = compiledScript.eval(scriptContext);
+            } catch (ScriptException e) {
+                allCasesPass = false;
+                break;
+            }
+
             if (nullableRes == null || nullableRes == "") {
                 allCasesPass = false;
                 break;
             }
+
             Double resNumber;
             try {
                 resNumber = Double.valueOf(nullableRes.toString());
@@ -127,6 +135,19 @@ public class CodeMirrorController implements Serializable {
         return suggestions;
     }
 
+    @PreDestroy
+    public void destroy() {
+        pool.shutdown();
+    }
+
+    public TestCasesDAO getTestCasesDAO() {
+        return testCasesDAO;
+    }
+
+    public void setTestCasesDAO(TestCasesDAO testCasesDAO) {
+        this.testCasesDAO = testCasesDAO;
+    }
+
     public String getContent() {
         return content;
     }
@@ -157,14 +178,6 @@ public class CodeMirrorController implements Serializable {
 
     public void setInstructionsText(List<String> instructionsText) {
         this.instructionsText = instructionsText;
-    }
-
-    public List<Map<Integer, Integer>> getTestCases() {
-        return testCases;
-    }
-
-    public void setTestCases(List<Map<Integer, Integer>> testCases) {
-        this.testCases = testCases;
     }
 
     public String getMode() {

@@ -9,10 +9,9 @@
   <ui:define name="panel-main">
     <section>
       <h1>Programming basics - JavaScript</h1>
-      <h:panelGrid id="topPanel" columns = "1" border = "1" cellpadding = "10" cellspacing = "1">
-        <h:outputText class="warning" value="Problem ##{codeMirrorController.level + 1}" />
-        <h:outputText value="Instructions: #{codeMirrorController.instructionsText[codeMirrorController.level]}" />
-      </h:panelGrid>
+      <h3 class="text-black-50">Problem ##{codeMirrorController.level + 1}</h3>
+      <span class="font-weight-bold">Instructions:</span>
+      <p class="card card-body bg-light"> #{codeMirrorController.instructionsText[codeMirrorController.level]}</p>
       <h:form>
         <pe:codeMirror id="codeMirror" mode="#{codeMirrorController.mode}" theme="#{codeMirrorController.theme}"
                        value="#{codeMirrorController.content}" keyMap="#{codeMirrorController.keymap}" lineNumbers="true"
