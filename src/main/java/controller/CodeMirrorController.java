@@ -18,7 +18,7 @@ public class CodeMirrorController implements Serializable {
 
     private static final long serialVersionUID = 20111020L;
 
-    @ManagedProperty(value="#{testCasesDAO}")
+    @ManagedProperty(value="#{defaultTestCasesDAO}")
     private TestCasesDAO testCasesDAO;
 
     private String content = "function main(N) { \n" +

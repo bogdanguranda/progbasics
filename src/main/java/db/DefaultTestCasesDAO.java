@@ -1,11 +1,15 @@
 package db;
 
+import javax.faces.bean.ManagedBean;
+import javax.faces.bean.SessionScoped;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Stream;
 
+@ManagedBean(name="defaultTestCasesDAO")
+@SessionScoped
 public class DefaultTestCasesDAO implements TestCasesDAO {
 
     private List<Map<Integer, Integer>> testCases = new ArrayList<>(

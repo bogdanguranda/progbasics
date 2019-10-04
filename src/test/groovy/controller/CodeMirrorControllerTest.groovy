@@ -1,3 +1,5 @@
+package controller
+
 import spock.lang.Specification
 
 class CodeMirrorControllerTest extends Specification {
